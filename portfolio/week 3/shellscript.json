@@ -1,0 +1,49 @@
+{
+	// Place your snippets for shellscript here. Each snippet is defined under a snippet name and has a prefix, body and 
+	// description. The prefix is what is used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. Placeholders with the 
+	// same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+
+	"Add a shebang": {
+		"prefix": "shebang",
+		"body": [
+			"#!/bin/bash"
+		],
+		"description": "Add shebang to script"
+	},
+
+	"Add colours": {
+		"prefix": "colours",
+		"body": [
+			"black='\\033[30m'",
+			"red='\\033[31m'",
+			"green='\\033[32m'",
+			"brown='\\033[33m'",
+			"blue='\\033[34m'",
+			"purple='\\033[35m'",
+			"cyan='\\033[36m'",
+			"grey='\\033[37m'",
+		],
+		"description": "Adds code for colours in bash"
+	},
+	"Test for a valid IP address": {
+		"prefix": "ip",
+		"body":[
+			"if [[ \"$ip\" =~ ^(([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))\\.){3}([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))$ ]]; then",
+            ":",
+            "else",
+			":",
+            "fi"
+		],
+		"description": "Uses regex for testing valid IP addresses"
+	}
+}
