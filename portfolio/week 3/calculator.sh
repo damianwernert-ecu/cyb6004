@@ -69,7 +69,13 @@ while :; do
                 \+) colour="$blue" ;;
                 \-) colour="$green" ;;
                 \*) colour="$red" ;;
-                /)  colour="$purple" ;;
+                /)  colour="$purple"
+                    divisor="${BASH_REMATCH[3]}"
+                    if [ "$divisor" -eq 0 ]; then
+                        echo "Divide by zero is not legal"
+                        continue
+                    fi
+                    ;;
                 esac
 
                 echo -e "$colour\c"
