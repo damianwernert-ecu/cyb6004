@@ -21,10 +21,10 @@ grey='\033[37m'
 bold='\033[1m'
 resetColour='\033[0m'
 
-returnValue=0
 runScript() {
     local scriptDir=$(dirname "$1")
     local scriptName=$(basename "$1")
+    local returnValue=0
     shift
 
     local BACK=$(pwd)
@@ -33,14 +33,15 @@ runScript() {
         "./$scriptName" "$@"
         returnValue=$?
         cd "$BACK"
+        return $returnValue
     else
         echo "Could not change directory to $scriptDir"
-        returnValue=1
+        return 1
     fi
 }
 
 runScript "$HOME/scripts/portfolio/week 2/passwordCheck.sh"
-if [[ $returnValue -ne 0 ]]; then
+if [[ $? -ne 0 ]]; then
     echo -en "$resetColour"
     exit 1
 fi
