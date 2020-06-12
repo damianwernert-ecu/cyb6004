@@ -31,6 +31,6 @@ while :; do
     fi
 done
 
-echo "Correct!"
+echo "Right!"
 
 exit 0
