@@ -24,4 +24,4 @@ echo "4. All echo statements with at least three words"
 grep -r "echo[[:space:]]*[[:alpha:]]*[[:space:]]*[[:alpha:]]*[[:space:]]*[[:alpha:]]*" "$startDir"
 
 echo "5. All lines that would make a good password (use your knowledge of cybersecurity to decide what makes a good password)."
-grep -Eor "[^[:space:]]{10,}" "$startDir" | grep "[a-z]" | grep "[A-Z]" | grep "[[:punct:]]" | grep "[0-9]"
+grep -Eor "[^[:space:]]{10,}" "$startDir" | grep "[[:lower:]]" | grep "[[:upper:]]" | grep "[[:punct:]]" | grep "[0-9]"
