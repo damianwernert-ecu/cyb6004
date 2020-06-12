@@ -1,0 +1,15 @@
+This text file demonstrates various features of regular expressions.
+
+By using the grep utility, this text file can searched.
+
+Regular expressions can include patterns that match:
+- numbers like:
+    123
+    4567; and
+    891012345
+- spaces   and	tabs; and
+- newlines
+There are lines like this one that have spaces before the newline  
+Here is a UUID: 8bbcc492-cd73-4b31-962b-c2b619ca496e
+Here is an incorrect UUID: f11a83d7-bcc-47d8-9290-223265550f6a
+
