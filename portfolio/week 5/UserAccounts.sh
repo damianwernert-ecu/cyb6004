@@ -26,7 +26,7 @@ awk -F: 'BEGIN {
         "__________________")
 
 }
-{
+/\/bin\/bash$/ {
     printf("| %s%-17s%s| %s%-7s%s| %s%-8s%s| %s%-25s%s| %s%-18s%s|\n",
         green, $1, resetColour,
         green, $3, resetColour,
