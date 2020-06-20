@@ -6,7 +6,7 @@ pr=$(basename $0)
 # Set the name of the secret file
 secretFile="secret.txt"
 
-# Get some colours
+# Define some colours
 red='\033[31m'
 green='\033[32m'
 resetColour='\033[0m'
@@ -25,7 +25,7 @@ read -sp "Enter your password to check: " password
 echo
 
 # check the password against the password stored in the secret file. Get rid of
-# standard output from sha256sum because it can be a bit obtuse.
+# standard output from sha256sum because we don't need it.
 echo -n "$password" | sha256sum -c secret.txt > /dev/null 2>&1
 # Capture the return value from the last command executed (in this case,
 # sha256sum).
