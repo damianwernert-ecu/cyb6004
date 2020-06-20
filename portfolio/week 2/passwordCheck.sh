@@ -37,10 +37,12 @@ if [ $returnValue -eq 0 ]; then
     # Check was successful. Echo the required message and exit with a 0 exit
     # code, indicating success.
     echo -e "${green}Access Granted"
+    echo -ne "${resetColour}"
     exit 0
 fi
 
 # Check was unsuccessful. Echo the required message and exit with a 1 exit
 # code, indicating failure.
 echo -e "${red}Access Denied"
+echo -ne "${resetColour}"
 exit 1
