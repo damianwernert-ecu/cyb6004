@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# This is a bash wrapper around an awk script.
+
 awk -F: 'BEGIN {
     black = "\033[30m"
     red = "\033[31m"
@@ -36,4 +38,7 @@ awk -F: 'BEGIN {
 }
 END {
 }' /etc/passwd
+
+# Exit with the same code as awk does.
+exit $?
 
