@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# scriptList is an array of strings that define programs to be run. Each string is of the format:
+# full path : arguments : description
 scriptList=(
     "$HOME/scripts/portfolio/week 2/foldermaker.sh::Create a folder" \
     "$HOME/scripts/portfolio/week 2/foldercopier.sh::Copy a folder" \
@@ -10,6 +12,7 @@ scriptList=(
     "$HOME/scripts/portfolio/week 3/InternetDownloader.sh::Download a File" \
 )
 
+# Define common colour escape sequences
 black='\033[30m'
 red='\033[31m'
 green='\033[32m'
@@ -21,6 +24,8 @@ grey='\033[37m'
 bold='\033[1m'
 resetColour='\033[0m'
 
+# The runScript runs a given script from a given directory, and then reverts to the previous directory if
+# necessary. It will return with whatever return value the script returns, or 1 in the case of failure.
 runScript() {
     local scriptDir=$(dirname "$1")
     local scriptName=$(basename "$1")
@@ -40,14 +45,19 @@ runScript() {
     fi
 }
 
-runScript "$HOME/scripts/portfolio/week 2/passwordCheck.sh"
+# Authenticate the user
+runScript "$HOME/scripts/portfolio/week 2/PasswordCheck.sh"
 if [[ $? -ne 0 ]]; then
     echo -en "$resetColour"
     exit 1
 fi
 
+# Print the menu
 echo -e "${purple}Select an option:"
 echo -en "$blue"
+
+# Iterate through each script in the scriptList array. Use printf for greater flexibility
+# and control over formatting.
 for scriptIndex in "${!scriptList[@]}"; do
     scriptPath=$(echo "${scriptList[$scriptIndex]}" | cut -f1 -d:)
     scriptDescription=$(echo "${scriptList[$scriptIndex]}" | cut -f3 -d:)
@@ -56,6 +66,8 @@ done
 echo -en "$resetColour"
 printf "%2d. %s\n" "$(( ${#scriptList[@]} + 1 ))" "Exit"
 
+# Keep looping until we get a valid choice from the user. Check for both a valid integer
+# and for an integer in the required range.
 while :; do
     read -p "Enter your choice: " choice
 
@@ -74,9 +86,19 @@ while :; do
     fi
 done
 
+# If we get to this part of the program, we have a valid choice. Due to the choices starting at 1, but arrays
+# starting at 0, we need to subtract one from the choice to derive the correct array index.
 indexToRun=$((choice - 1))
+
+# Run the script as given in the scriptList array. We need the first and second fields in the scriptList string, being
+# the full program path name and optional arguements.
 runScript "$(echo "${scriptList[$indexToRun]}" | cut -f1 -d:)" "$(echo "${scriptList[$indexToRun]}" | cut -f2 -d:)"
 
+# Capture the return code of the script for exiting the program.
+returnCode=$?
+
+# Reset colours before exiting
 echo -en "$resetColour"
 
-exit 0
+# Use the return code captured earlier to exit the program with.
+exit $returnCode
