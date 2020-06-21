@@ -1,5 +1,9 @@
 #! /bin/bash
 
+# Change the umask to 0177 so that any files this program creates are only readable and writable by the
+# user that runs it.
+umask 0177
+
 # Identify the program name for later use
 program=$(basename $0)
 
