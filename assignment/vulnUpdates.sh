@@ -13,6 +13,18 @@ META_URL="https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-recent.meta"
 DATA_FILE="$HOME/.${PROGRAM}.data.gz"
 MAX_CACHE_AGE=2   # hours
 
+# Define common colour escape sequences
+black='\033[30m'
+red='\033[31m'
+green='\033[32m'
+brown='\033[33m'
+blue='\033[34m'
+purple='\033[35m'
+cyan='\033[36m'
+grey='\033[37m'
+bold='\033[1m'
+normal='\033[0m'
+
 # Define the usage string for errors in invocation
 usage="Usage: $pr [OPTIONS]
 
@@ -87,6 +99,15 @@ ExtendedHelp() {
     # Note that on the preceding line, it is specifically indented with a tab, and not spaces. This is to make the indented
     # !EOD work.
     return $?
+}
+
+# ErrorOut() function. This prints the given error message in red, and exits with the given exit code
+ErrorOut() {
+    local exitCode="$1"
+    shift
+    local message="$*"
+    echo -e "${PROGRAM}: ${red}${message}${normal}" >&2
+    exit $exitCode
 }
 
 # RetrieveMeta() function gets the metadata of the NVD database so that we can verify downloads, and make a decision as to
@@ -245,21 +266,18 @@ shift $(( OPTIND - 1 ))
 # Convert and validate earliestTimeString into an epoch time
 earliestTime=$(date +%s -d"$earliestTimeString")
 if [ $? -ne 0 ]; then
-    echo "$PROGRAM: the date string provided is invalid" >&2
-    exit 2
+    ErrorOut 2 "the date string provided is invalid"
 fi
 
 # Validate the input of minSeverity
 if ! [[ $minSeverity =~ ^[0-9]*\.?[0-9]*$ ]]; then
-    echo "$PROGRAM: minimum severity is invalid" >&2
-    exit 3
+    ErrorOut 3 "minimum severity is invalid"
 fi
 
 # Find out if we have a data file, and if we need to update it
 UpdateCache "$DATA_FILE" "$updateCache" "$MAX_CACHE_AGE"
 if [ $? -ne 0 ]; then
-    echo "$PROGRAM: data download or update failed" >&2
-    exit 4
+    ErrorOut 4 "data download or update failed"
 fi
 
 # The vulnerability data consists of a large array in JSON format. Use jq to create a list of indexes corresponding to the array.
