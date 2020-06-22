@@ -89,6 +89,8 @@ ExtendedHelp() {
     return $?
 }
 
+# RetrieveMeta() function gets the metadata of the NVD database so that we can verify downloads, and make a decision as to
+# whether new data is available. This function returns data via STDOUT, so must be otherwise "silent".
 RetrieveMeta() {
     local rawMetadata
     local modifiedDate
@@ -96,13 +98,18 @@ RetrieveMeta() {
     local fileSize
     local sha256
 
+    # Get the data using wget
     rawMetadata=$(wget -qO - "$META_URL" | sed -e "s/\r//g")
+
+    # Convert the date given to epoch time
     modifiedDate=$(echo "$rawMetadata" | grep "^lastModifiedDate:" | cut -f2- -d:)
     modifiedEpoch=$(date +%s -d"${modifiedDate}")
+
+    # Get the reported gzipped file size and sha256 checksum
     fileSize=$(echo "$rawMetadata" | grep "^zipSize:" | cut -f2 -d:)
     sha256=$(echo "$rawMetadata" | grep "^sha256:" | cut -f2 -d:)
 
-    # Make sure we have some values
+    # Make sure we have found some values
     if [ -z "$modifiedEpoch" -o -z "$fileSize" -o -z "$sha256" ]; then
         echo "$PROGRAM: failed to retrieve metadata" >&2
         return 1
@@ -113,6 +120,7 @@ RetrieveMeta() {
     return 0
 }
 
+# The DownloadData() function actually retrieves the data from the NVD, and verifies the checksum.
 DownloadData() {
     local fileName
     local fileSize
@@ -132,7 +140,7 @@ DownloadData() {
     fi
 
     # Original intention was to compare sizes with files, but the file sizes were usually never in sync, so file
-    # size check was removed.
+    # size check was removed.  In any case, the checksum will make sure the download is correct.
     fileChecksum=$(gunzip -c "$fileName" | sha256sum - | awk '{print toupper($1)}')
     if [ "$fileChecksum" = "$checksum" ]; then
         echo "$PROGRAM: download successful"
@@ -143,6 +151,8 @@ DownloadData() {
     fi
 }
 
+# The UpdateCache() is a relatively complex bit of logic to decide on whether the local cache of NVD data needs to be udpated.
+# The goal is to minimise downloads from the NVD, but stay as up-to-date as possible with vulnerability data.
 UpdateCache() {
     local dataFile="$1"
     local forceUpdate="$2"
@@ -155,15 +165,17 @@ UpdateCache() {
     local ageCutoff=$(date +%s -d"${maxAge} hours ago")
     local getDownload=no
 
-    # We must minimise the the number of downloads. The NVD has two URLs in relation to the data:
+    # The NVD has two URLs in relation to the data:
     # 1. the metadata URL (which holds update time, sizes and checksum information); and
     # 2. the actual data URL.
+    # We must minimise the the number of downloads of both the NVD data and the NVD metadata.
+
     # The metadata can be used to both:
     # 1. verify a download; and
     # 2. to examine if newer data exists for a download to occur.
 
     # Metadata is required for all circumstances except for one: when our datafile exists, its data is recent enough, and
-    # the user hasn't forced a download with the -c option. We will check for this condition first:
+    # the user hasn't forced a download with the -c option. We will check for this specific condition first:
     if [ -r "$dataFile" ]; then
         dataDateString=$(gunzip -c "$dataFile" | jq -r '."CVE_data_timestamp"')
         dataDateEpoch=$(date +%s -d"$dataDateString")
@@ -177,7 +189,7 @@ UpdateCache() {
         fi
     fi
 
-    # From now on, we need the metadata provided by the NVD about new downloads.
+    # From now on, we need the metadata provided by the NVD about new downloads, so retrieve the metadata.
     read metaDate gzipSize sha256checksum <<< $(RetrieveMeta)
 
     # If there is no datafile, or an update is forced, then we download data, using the metadata to verify the download.
@@ -187,17 +199,21 @@ UpdateCache() {
         return 1
     fi
 
-    # If we get this far, the datafile must exist, and it is old. We look at the metadata's last update to see if we should
-    # download new data.
+    # If we get this far, the datafile must exist, and it is old. We look at the metadata's last update to see if there is
+    # new NVD data to be downloaded.
     if [ $metaDate -le $dataDateEpoch ]; then
         echo "$PROGRAM: updating new data"
         DownloadData "$dataFile" "$gzipSize" "$sha256checksum" && return 0
         return 1
     else
-        echo "$PROGRAM: no new data on the NVD server"
+        echo "$PROGRAM: no new NVD data available"
         return 0
     fi
 }
+
+#
+# End of bash functions
+#
 
 # Default values affected my command-line options
 earliestTimeString="8 days ago"
@@ -226,7 +242,7 @@ while getopts "ce:hs:u" opt; do
 done
 shift $(( OPTIND - 1 ))
 
-# Convert earliestTimeString into an epoch time
+# Convert and validate earliestTimeString into an epoch time
 earliestTime=$(date +%s -d"$earliestTimeString")
 if [ $? -ne 0 ]; then
     echo "$PROGRAM: the date string provided is invalid" >&2
@@ -246,19 +262,26 @@ if [ $? -ne 0 ]; then
     exit 4
 fi
 
-# Create a list of indexes corresponding to the array provided by the NVD.
+# The vulnerability data consists of a large array in JSON format. Use jq to create a list of indexes corresponding to the array.
 arrayIndexes=$(gunzip -c "$DATA_FILE"  | jq '."CVE_Items" | keys | .[]')
 lastIndex=$(echo "$arrayIndexes" | tail -1)
 
-# Record the number of reported vulnerabilites
+# Record the number of vulnerabilites that are reported to the user that are reported to the user
 numHits=0
 
-# Display parameter data
-echo "$PROGRAM: searching through $lastIndex vulnerabilities for scores of $minSeverity or higher since $(date -d@${earliestTime})"
+# Display search parameters. This includes the earliest dates to report from, the minimum severity to report, and whether or not
+# vulnerabilites with unknown scores are reported.
+echo "$PROGRAM: searching $lastIndex vulnerabilities for scores >= $minSeverity since $(date -d@${earliestTime})"
+echo -n "$PROGRAM: unknown vulnerabilites are "
+if [ "$suppressUnknownScores" = "yes" ]; then
+    echo "not reported."
+else
+    echo "reported."
+fi
 
 # Iterate through the array of vulnerabilities
 for vuln in $arrayIndexes; do
-    echo -ne "Searching $vuln of $lastIndex\r"
+    echo -ne "Searching $vuln of $lastIndex\r"  # For berevity to improve user friendliness.
 
     # Retrieve the last modified date, and convert it to epoch time
     lastModifiedDateString=$(gunzip -c "$DATA_FILE" | jq -r ".CVE_Items[${vuln}].lastModifiedDate")
@@ -306,3 +329,5 @@ for vuln in $arrayIndexes; do
 done
 
 echo "$PROGRAM: $numHits hits reported"
+
+exit 0
