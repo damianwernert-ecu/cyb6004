@@ -48,16 +48,15 @@ runScript() {
 # Authenticate the user
 runScript "$HOME/scripts/portfolio/week 2/PasswordCheck.sh"
 if [[ $? -ne 0 ]]; then
-    echo -en "$resetColour"
     exit 1
 fi
 
 # Print the menu
 echo -e "${purple}Select an option:"
-echo -en "$blue"
 
-# Iterate through each script in the scriptList array. Use printf for greater flexibility
+# Iterate through each script in the scriptList array. Use printf rather than echo for greater flexibility
 # and control over formatting.
+echo -en "$blue"
 for scriptIndex in "${!scriptList[@]}"; do
     scriptPath=$(echo "${scriptList[$scriptIndex]}" | cut -f1 -d:)
     scriptDescription=$(echo "${scriptList[$scriptIndex]}" | cut -f3 -d:)
