@@ -15,7 +15,8 @@ awk -F: 'BEGIN {
     bold = "\033[1m"
     resetColour = "\033[0m"
 
-    # This printf statement prints the headings
+    # This printf statement prints the headings in blue with boxes around
+    # each word
     printf("| %s%-17s%s| %s%-7s%s| %s%-8s%s| %s%-25s%s| %s%-18s%s|\n",
         blue, "Username", resetColour,
         blue, "UserID", resetColour,
@@ -23,7 +24,7 @@ awk -F: 'BEGIN {
         blue, "Home", resetColour,
         blue, "Shell", resetColour)
 
-    # This printf statemetn prints the underlines for the headings
+    # This printf statement prints underlines for the headings
     printf("| %-17s| %-7s| %-8s| %-25s| %-18s|\n",
         "_________________",
         "_______",
@@ -42,8 +43,6 @@ awk -F: 'BEGIN {
         green, $4, resetColour,
         green, $6, resetColour,
         green, $7, resetColour)
-}
-END {
 }' /etc/passwd
 
 # Exit with the same code as awk does.
