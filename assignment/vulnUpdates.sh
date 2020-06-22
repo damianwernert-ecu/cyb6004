@@ -332,15 +332,41 @@ for vuln in $arrayIndexes; do
     fi
 
     # Retrieve the vulnerability ID
-    vulnID=$(gunzip -c "$DATA_FILE" | jq ".CVE_Items[${vuln}].cve.CVE_data_meta.ID")
+    vulnID=$(gunzip -c "$DATA_FILE" | jq ".CVE_Items[${vuln}].cve.CVE_data_meta.ID" | tr -d '"')
 
     # Retrieve the vulnerability description. The -r option on jq removes the surrounding quotes
     description=$(gunzip -c "$DATA_FILE" | jq -r ".CVE_Items[${vuln}].cve.description.description_data | .[].value")
 
-    # Display the vulnerability data
-    printf "%d: %s score = %s (Last updated %s)\n" $vuln "$vulnID" "$displayScore" "$lastModifiedDateString"
-    echo "    Description:"
-    echo -e "$description\n" | fold -s | awk '{print "        " $0 }'
+    # Display the vulnerability data using perl's format capability. Note that due to the nature of the format utility in perl,
+    # indention conventions cannot be maintained in the embedded perl, but every effort is taken to try to do as such.
+    perl -e '
+    # Grab values from command line
+    my ($vulnNbr, $vulnID, $score, $lastModified, $description) = @ARGV;
+
+    # Create the perl format record. Note that we cannot maintain normal indenting in the broader
+    # view of the bash script.
+    format OUTPUT_RECORD =
+@<<<: @<<<<<<<<<<<<< score = @#.# (Last updated @<<<<<<<<<<<<<<<<)
+$vulnNbr, $vulnID, $score, $lastModified
+    @<<<<<<<<<<<
+    "Description:"
+        ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        $description
+        ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        $description
+        ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        $description
+        ^<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<...
+        $description
+
+.
+    # Note the above dot must appear without any indention.
+
+    # Select STDOUT as the write descriptor for the write command
+    select(STDOUT);
+    $~ = OUTPUT_RECORD;  # Set the default format for write.
+    write;  # Perform the write out.
+    ' "$vuln" "$vulnID" "$displayScore" "$lastModifiedDateString" "$description"
 
     # Update the number of reported vulnerabilities
     (( numHits ++ ))
