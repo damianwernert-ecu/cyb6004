@@ -22,17 +22,15 @@ fi
 # Read the password in without terminal echo
 echo -en "$red"
 read -sp "Enter your password to check: " password
-echo
+echo   # To tidy up the output of the script
 
 # check the password against the password stored in the secret file. Get rid of
 # standard output from sha256sum because we don't need it.
 echo -n "$password" | sha256sum -c secret.txt > /dev/null 2>&1
-# Capture the return value from the last command executed (in this case,
-# sha256sum).
+# Capture the return value from the last command executed (in this case, sha256sum).
 returnValue=$?
 
-# If the $returnValue is non-zero, then it has failed. If it is zero, then it's
-# okay.
+# If the $returnValue is non-zero, then it has failed. If it is zero, then it's okay.
 if [ $returnValue -eq 0 ]; then
     # Check was successful. Echo the required message and exit with a 0 exit
     # code, indicating success.
