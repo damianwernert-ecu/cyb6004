@@ -181,10 +181,6 @@ UpdateCache() {
     read metaDate gzipSize sha256checksum <<< $(RetrieveMeta)
 
     # If there is no datafile, or an update is forced, then we download data, using the metadata to verify the download.
-    echo "DIAG: UpdateCache: dataFile = $dataFile"
-    echo "DIAG: UpdateCache: forceUpdate = $forceUpdate"
-    echo "DIAG: UpdateCache: gzipSize = $gzipSize"
-    echo "DIAG: UpdateCache: sha256checksum = $sha256checksum"
     if [ ! -r "$dataFile" ] || [ "$forceUpdate" = "yes" ]; then
         echo "$PROGRAM: downloading new data"
         DownloadData "$dataFile" "$gzipSize" "$sha256checksum" && return 0
