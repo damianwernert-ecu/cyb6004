@@ -90,10 +90,17 @@ ExtendedHelp() {
 }
 
 RetrieveMeta() {
-    local rawMetadata=$(wget -qO - "$META_URL")
-    local modifiedEpoch=$(date +%s -d"$(echo \"$rawMetadata\" | grep \"^lastModifiedDate:\" | cut -f2 -d:)")
-    local fileSize=$(echo "$rawMetadata" | grep "^zipSize:" | cut -f2 -d:)
-    local sha256=$(echo "$rawMetadata" | grep "^sha256:" | cut -f2 -d:)
+    local rawMetadata
+    local modifiedDate
+    local modifiedEpoch
+    local fileSize
+    local sha256
+
+    rawMetadata=$(wget -qO - "$META_URL" | sed -e "s/\r//g")
+    modifiedDate=$(echo "$rawMetadata" | grep "^lastModifiedDate:" | cut -f2- -d:)
+    modifiedEpoch=$(date +%s -d"${modifiedDate}")
+    fileSize=$(echo "$rawMetadata" | grep "^zipSize:" | cut -f2 -d:)
+    sha256=$(echo "$rawMetadata" | grep "^sha256:" | cut -f2 -d:)
 
     # Make sure we have some values
     if [ -z "$modifiedEpoch" -o -z "$fileSize" -o -z "$sha256" ]; then
@@ -111,21 +118,28 @@ DownloadData() {
     local fileSize
     local checksum
 
+    fileName="$1"
+    fileSize="$2"
+    checksum="$3"
+
     # Download data and compare with sizes and checksum
     wget -q -O "$fileName" "$DATA_URL"
-    downloadSize=$(stat -c %s "$fileName")
-    if [ "$downloadSize" -eq "$fileSize" ]; then
-        fileChecksum=$(sha256sum "$fileName" | awk '{print $1}')
-        if [ "$fileChecksum" -eq "$checksum" ]; then
-            echo "$PROGRAM: download successful"
-            return 1
-        else
-            echo "$PROGRAM: file checksum ($fileChecksum) incorrect. Expected: $checksum" >&2
-            return 0
-        fi
-    else
-        echo "$PROGRAM: download file was the wrong size. Was: $downloadSize bytes, expected $fileSize" >&2
+
+    # check we have a file to look at
+    if [ ! -r "$fileName" ]; then
+        echo "$PROGRAM: file did not download to $fileName correctly" >&2
+        return 1
+    fi
+
+    # Original intention was to compare sizes with files, but the file sizes were usually never in sync, so file
+    # size check was removed.
+    fileChecksum=$(gunzip -c "$fileName" | sha256sum - | awk '{print toupper($1)}')
+    if [ "$fileChecksum" = "$checksum" ]; then
+        echo "$PROGRAM: download successful"
         return 0
+    else
+        echo "$PROGRAM: file checksum ($fileChecksum) incorrect. Expected: $checksum" >&2
+        return 1
     fi
 }
 
@@ -164,11 +178,13 @@ UpdateCache() {
     fi
 
     # From now on, we need the metadata provided by the NVD about new downloads.
-    if ! RetrieveMeta | read metaDate gzipSize sha256checksum; then
-        return 1
-    fi
+    read metaDate gzipSize sha256checksum <<< $(RetrieveMeta)
 
     # If there is no datafile, or an update is forced, then we download data, using the metadata to verify the download.
+    echo "DIAG: UpdateCache: dataFile = $dataFile"
+    echo "DIAG: UpdateCache: forceUpdate = $forceUpdate"
+    echo "DIAG: UpdateCache: gzipSize = $gzipSize"
+    echo "DIAG: UpdateCache: sha256checksum = $sha256checksum"
     if [ ! -r "$dataFile" ] || [ "$forceUpdate" = "yes" ]; then
         echo "$PROGRAM: downloading new data"
         DownloadData "$dataFile" "$gzipSize" "$sha256checksum" && return 0
@@ -178,7 +194,7 @@ UpdateCache() {
     # If we get this far, the datafile must exist, and it is old. We look at the metadata's last update to see if we should
     # download new data.
     if [ $metaDate -le $dataDateEpoch ]; then
-        echo "$PROGRAM: downloading new data"
+        echo "$PROGRAM: updating new data"
         DownloadData "$dataFile" "$gzipSize" "$sha256checksum" && return 0
         return 1
     else
@@ -228,7 +244,8 @@ if ! [[ $minSeverity =~ ^[0-9]*\.?[0-9]*$ ]]; then
 fi
 
 # Find out if we have a data file, and if we need to update it
-if ! UpdateCache "$DATA_FILE" "$updateCache"; then
+UpdateCache "$DATA_FILE" "$updateCache" "$MAX_CACHE_AGE"
+if [ $? -ne 0 ]; then
     echo "$PROGRAM: data download or update failed" >&2
     exit 4
 fi
